@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # default_path: $HOME
-install(){
+install() {
   local list="$1"
   local path="$HOME"
   if [ $# -eq 2 ]; then
     path="$2"
   fi
   for conf in ${list[@]}; do
-    stow -t $path $conf || { echo "Error: stow failed for $conf"; return 1; }
+    stow -t $path $conf || {
+      echo "Error: stow failed for $conf"
+      return 1
+    }
   done
 }
 
@@ -24,9 +27,11 @@ Dawin)
   ;;
 Linux)
   install "nushell" "$HOME/.config"
+  install "hyprland" "$HOME/.config"
+
   ;;
 *)
-  echo "Error: unknown system: $OS" 
-  return 1 
+  echo "Error: unknown system: $OS"
+  return 1
   ;;
 esac

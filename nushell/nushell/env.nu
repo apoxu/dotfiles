@@ -19,28 +19,32 @@
 
 
 
+
+let paths = match $nu.os-info.name {
+  linux => {
+    [
+     $"($env.HOME)/.cargo/bin",
+    ]
+  }
+  macos => {
+    [
+     "/opt/homebrew/bin",
+     "/Users/apollo/.local/share/bob/nvim-bin",
+     "/Users/apollo/.cargo/bin",
+     "/opt/homebrew/opt/grep/libexec/gnubin",
+     "/Users/apollo/.config/emacs/bin",
+     $"($env.GOBIN)"
+    ]
+  }
+}
+
 # go lang
+# TODO:
 $env.GOROOT = "/usr/local/go"
 $env.GOPATH = "/Users/apollo/go"
 $env.GOBIN = $"($env.GOROOT)/bin"
 $env.GO111MODULE = "on"
 
-# Set PATH
-let paths = [
-  "/opt/homebrew/bin", 
-  "/Users/apollo/.local/share/bob/nvim-bin", 
-  "/Users/apollo/.cargo/bin",
-  "/opt/homebrew/opt/grep/libexec/gnubin",
-  "/Users/apollo/.config/emacs/bin",
-  $"($env.GOBIN)"
-]
+# add paths to env.PATH
 $env.PATH = ($env.PATH | each {|path| $path} | append $paths)
-
 $env.EDITOR = 'nvim'
-
-# oh-my-posh and theme
-let posh_dir = (brew --prefix oh-my-posh | str trim)
-let posh_theme = $'($posh_dir)/share/oh-my-posh/themes/'
-$env.THEME = 'atomicBit'
-oh-my-posh init nu --config $'($posh_dir)/share/oh-my-posh/themes/($env.THEME).omp.json'
-
