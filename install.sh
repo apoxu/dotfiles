@@ -13,7 +13,7 @@ install(){
 }
 
 # confs in .$HOME/config
-config_list="neovim doomemacs"
+config_list="neovim doomemacs kitty"
 install "$config_list" "$HOME/.config"
 
 # OS specific configurations
