@@ -57,31 +57,20 @@ return {
   },
 
   {
-    "williamboman/mason.nvim",
-    opts = { ensure_installed = { "clang-format" } },
-
-    --TODO: docs
-    {
-      "rmagatti/goto-preview",
-      keys = { "gp" },
-      config = function()
-        require("goto-preview").setup({
-          width = 120,
-          height = 25,
-          default_mappings = true,
-          debug = false,
-          opacity = nil,
-          post_open_hook = nil,
-        })
-      end,
-    },
+    "rmagatti/goto-preview",
+    keys = { "gp" },
+    config = function()
+      require("goto-preview").setup({
+        width = 120,
+        height = 25,
+        default_mappings = true,
+        debug = false,
+        opacity = nil,
+        post_open_hook = nil,
+      })
+    end,
   },
 
-  -- For fzf-lua
-  {
-    "junegunn/fzf",
-    build = "./install --bin",
-  },
   -- for rust
   {
     "williamboman/mason.nvim",

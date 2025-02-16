@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# default_path: $HOME
-install() {
+# install configs
+# default_path: $HOME/.config
+install-config() {
   local list="$1"
-  local path="$HOME"
+  local path="$HOME/.config"
   if [ $# -eq 2 ]; then
     path="$2"
   fi
@@ -15,20 +16,18 @@ install() {
   done
 }
 
-# confs in .$HOME/config
-config_list="neovim doomemacs kitty"
-install "$config_list" "$HOME/.config"
+# general configs
+config_list="neovim doomemacs kitty waybar"
+install-config "$config_list"
 
-# OS specific configurations
+# OS specific configs
 OS=$(uname -s)
 case "$OS" in
 Dawin)
-  install "nushell" "$HOME/Library/Application\ Support"
+  install-config "nushell" "$HOME/Library/Application\ Support"
   ;;
 Linux)
-  install "nushell" "$HOME/.config"
-  install "hyprland" "$HOME/.config"
-
+  install-config "nushell hyprland"
   ;;
 *)
   echo "Error: unknown system: $OS"

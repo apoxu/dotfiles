@@ -3,6 +3,12 @@
 ;; Load keybindings
 (load! "keybinds")
 
+;; Fonts
+(setq doom-font (font-spec :family "FiraCode Nerd Font" :size 16)
+      doom-variable-pitch-font (font-spec :family "FiraCode Nerd Font")
+      doom-symbol-font (font-spec :family "FiraCode Nerd Font")
+      doom-big-font (font-spec :family "FiraCode Nerd Font" :size 19))
+
 ;; Theme
 (setq doom-theme 'doom-gruvbox-light)
 
@@ -28,6 +34,11 @@
 ;;   (eglot-managed-mode . eldoc-box-help-at-point))
 ;; (add-hook 'eglot-managed-mode-hook #'eldoc-box-hover-mode t)
 
-(add-to-list 'exec-path (format "%s%s" (string-trim-right (shell-command-to-string "brew --prefix --installed llvm")) "/bin"))
+;;(add-to-list 'exec-path (format "%s%s" (string-trim-right (shell-command-to-string "brew --prefix --installed llvm")) "/bin"))
 (use-package! dape
   :custom (dape-buffer-window-arrangment))
+
+;; let emacs itself use bash and let vterm use nushell
+(setq shell-file-name (executable-find "bash"))
+(setq-default vterm-shell (executable-find "nu"))
+(setq-default explicit-shell-file-name (executable-find "nu"))

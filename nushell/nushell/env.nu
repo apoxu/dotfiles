@@ -17,13 +17,18 @@
 # You can remove these comments if you want or leave
 # them for future reference.
 
-
-
+# go lang
+$env.GOROOT = "/usr/local/go"
+$env.GOPATH = "/Users/apollo/go"
+$env.GOBIN = $"($env.GOROOT)/bin"
+$env.GO111MODULE = "on"
 
 let paths = match $nu.os-info.name {
   linux => {
     [
-     $"($env.HOME)/.cargo/bin",
+      $"($env.HOME)/.cargo/bin",
+	    "/home/apoxu/.local/share/bob/nvim-bin",
+      $"($env.HOME)/.config/emacs/bin"
     ]
   }
   macos => {
@@ -38,13 +43,6 @@ let paths = match $nu.os-info.name {
   }
 }
 
-# go lang
-# TODO:
-$env.GOROOT = "/usr/local/go"
-$env.GOPATH = "/Users/apollo/go"
-$env.GOBIN = $"($env.GOROOT)/bin"
-$env.GO111MODULE = "on"
-
 # add paths to env.PATH
 $env.PATH = ($env.PATH | each {|path| $path} | append $paths)
-$env.EDITOR = 'nvim'
+$env.EDITOR = 'neovide'
