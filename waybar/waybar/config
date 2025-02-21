@@ -39,7 +39,7 @@
         "format": "\uf017  {:%H:%M:%S}",
         "format-alt": "\uf133  {:%Y-%m-%d %H:%M:%S}",
         "tooltip-format": "{calendar}",
-		"timezone": "Asia/Chongqing",
+		"timezone": "Asia/Shanghai",
         "calendar": {
             "mode"          : "month",
             "mode-mon-col"  : 3,

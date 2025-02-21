@@ -13,12 +13,4 @@ map.set("n", ",", '<cmd>lua require("which-key").show(",", {mode = "n", auto = t
 wk.add({
   { ",w", "<cmd>w<cr>", desc = "Save current buffer" },
   { ",h", "<cmd>noh<cr>", desc = "Disable highlight until next search" },
-  {
-    ",t",
-    function()
-      require("lazyvim.util.terminal").open({})
-    end,
-    desc = "Floting terminal",
-  },
-  { "<leader>;", "<cmd>Dashboard<cr>", desc = "Dashboard" },
 })

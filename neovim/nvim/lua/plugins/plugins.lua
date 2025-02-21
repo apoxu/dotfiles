@@ -90,4 +90,33 @@ return {
       },
     },
   },
+  {
+    "hedyhli/outline.nvim",
+    opts = {
+      symbols = {
+        filter = {
+          rust = vim.list_extend(vim.deepcopy(LazyVim.config.kind_filter["default"]), { "Object" }),
+        },
+      },
+    },
+  },
+  {
+    "mrcjkb/rustaceanvim",
+    opts = function(_, opts)
+      -- save original on_attach
+      local original_on_attach = opts.server.on_attach
+
+      opts.server.on_attach = function(client, bufnr)
+        -- perferm original on_attach
+        if original_on_attach then
+          original_on_attach(client, bufnr)
+        end
+
+        -- add new keybind
+        vim.keymap.set("n", "<leader>ce", function()
+          vim.cmd.RustLsp("expandMacro") -- 示例命令
+        end, { desc = "Expand Macro", buffer = bufnr })
+      end
+    end,
+  },
 }

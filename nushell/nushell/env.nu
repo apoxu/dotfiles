@@ -19,30 +19,29 @@
 
 # go lang
 $env.GOROOT = "/usr/local/go"
-$env.GOPATH = "/Users/apollo/go"
+$env.GOPATH = $"($env.HOME)/go"
 $env.GOBIN = $"($env.GOROOT)/bin"
 $env.GO111MODULE = "on"
 
-let paths = match $nu.os-info.name {
-  linux => {
-    [
-      $"($env.HOME)/.cargo/bin",
-	    "/home/apoxu/.local/share/bob/nvim-bin",
-      $"($env.HOME)/.config/emacs/bin"
-    ]
-  }
-  macos => {
+let base_paths = [
+  $"($env.HOME)/.cargo/bin",
+  $"($env.HOME)/.local/share/bob/nvim-bin",
+  $"($env.HOME)/.config/emacs/bin",
+  $"($env.GOBIN)"
+]
+
+let os_specific_paths = match $nu.os-info.name {
+  macos => 
     [
      "/opt/homebrew/bin",
-     "/Users/apollo/.local/share/bob/nvim-bin",
-     "/Users/apollo/.cargo/bin",
-     "/opt/homebrew/opt/grep/libexec/gnubin",
-     "/Users/apollo/.config/emacs/bin",
-     $"($env.GOBIN)"
-    ]
-  }
+     "/opt/homebrew/opt/grep/libexec/gnubin"
+    ],
+  _ => []
 }
 
+let paths = ($base_paths | append $os_specific_paths | where {|p| $p | path exists})
+
 # add paths to env.PATH
-$env.PATH = ($env.PATH | each {|path| $path} | append $paths)
-$env.EDITOR = 'neovide'
+$env.PATH = ($paths | prepend $env.PATH | uniq)
+$env.EDITOR = (which neovide | get path.0 | default "vim")
+$env.VISUAL = $env.EDITOR

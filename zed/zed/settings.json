@@ -1,0 +1,68 @@
+{
+  // The name of the Zed theme to use for the UI.
+  //
+  // `mode` is one of:
+  // - "system": Use the theme that corresponds to the system's appearance
+  // - "light": Use the theme indicated by the "light" field
+  // - "dark": Use the theme indicated by the "dark" field
+  "assistant": {
+    "default_model": {
+      "provider": "zed.dev",
+      "model": "claude-3-5-sonnet-latest"
+    },
+    "version": "2"
+  },
+  "outline_panel": {
+    "dock": "right"
+  },
+  "theme": {
+    "mode": "system",
+    "light": "Gruvbox Dark",
+    "dark": "One Dark"
+  },
+  "base_keymap": "Emacs",
+  // Features that can be globally enabled or disabled
+  "features": {
+    // Which edit prediction provider to use.
+    "edit_prediction_provider": "zed"
+  },
+  // The OpenType features to enable for text in the UI
+
+  "ui_font_features": null,
+  // Whether to enable vim modes and key bindings.
+  "vim_mode": true,
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "inlayHints": {
+          "maxLength": null,
+          "lifetimeElishionHints": {
+            "enable": "skip_trivial",
+            "useParameterNames": true
+          },
+          "closureReturnTypeHints": {
+            "enable": "always"
+          }
+        },
+        // get more cargo-less diagnostics from rust-analyzer,
+        // which might include false-positives (those can be turned off by their names)
+        "diagnostics": {
+          "experimental": {
+            "enable": true
+          }
+        },
+        // To disable the checking entirely
+        // (ignores all cargo and check settings below)
+        "checkOnSave": true,
+        // To check the `lib` target only.
+        "cargo": {
+          "allTargets": true
+        },
+        // Use `-p` instead of `--workspace` for cargo check
+        "check": {
+          "workspace": true
+        }
+      }
+    }
+  }
+}
