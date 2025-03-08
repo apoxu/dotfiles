@@ -28,3 +28,8 @@
 (package! dape
   :recipe (:host github
            :repo "svaante/dape"))
+
+(package! aidermacs
+  :recipe (:host github
+           :repo "MatthewZMD/aidermacs"
+           :files ("*.el")))

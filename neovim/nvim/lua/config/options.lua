@@ -4,5 +4,5 @@
 vim.opt.backup = false
 vim.opt.swapfile = false
 vim.opt.relativenumber = false
-vim.opt.background = "light"
+vim.opt.background = "dark"
 vim.g.q_recore_macro = false

@@ -15,6 +15,8 @@ declare -a CONFIG_ENTRIES=(
   "common|doomemacs|.config"
   "common|kitty|.config"
   "common|zed|.config"
+  "common|emacs|.config"
+  "common|zellij|.config"
 
   # macOS specific configurations
   "Darwin|nushell|Library/Application Support"
@@ -31,8 +33,7 @@ declare -a CONFIG_ENTRIES=(
 
 check_dependencies() {
   if ! command -v stow &>/dev/null; then
-    echo -e "${RED}Error:${NC} 'stow' not found"
-    exit 1
+    echo -e "${RED}Error:${NC} 'stow' not found" exit 1
   fi
 }
 
@@ -80,8 +81,7 @@ install_configs() {
     # Verify configuration directory exists
     if [[ ! -d "$config_name" ]]; then
       echo -e "${YELLOW}Warning:${NC} Config directory [$config_name] does not exist"
-      continue
-    fi
+      continue fi
 
     # Perform installation
     echo -e "${GREEN}==> Deploying:${NC} $config_name → $target_path"

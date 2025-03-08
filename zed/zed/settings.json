@@ -7,8 +7,8 @@
   // - "dark": Use the theme indicated by the "dark" field
   "assistant": {
     "default_model": {
-      "provider": "zed.dev",
-      "model": "claude-3-5-sonnet-latest"
+      "provider": "deepseek",
+      "model": "deepseek-reasoner"
     },
     "version": "2"
   },
@@ -16,7 +16,7 @@
     "dock": "right"
   },
   "theme": {
-    "mode": "system",
+    "mode": "light",
     "light": "Gruvbox Dark",
     "dark": "One Dark"
   },

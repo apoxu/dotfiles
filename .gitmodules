@@ -1,0 +1,6 @@
+[submodule "emacs/emacs"]
+	path = emacs/emacs
+	url = https://github.com/doomemacs/doomemacs.git
+[submodule "emacs/centaur"]
+	path = emacs/centaur
+	url = https://github.com/seagle0128/.emacs.d
