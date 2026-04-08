@@ -1,0 +1,26 @@
+# 注意：包级 .stow-local-ignore 会替换 Stow 默认忽略规则，
+# 所以这里先补回常见的 VCS / 备份文件模式，再追加本地状态规则。
+RCS
+.+,v
+CVS
+\.\#.+
+\.cvsignore
+\.svn
+_darcs
+\.hg
+\.git
+\.gitignore
+\.gitmodules
+.+~
+\#.*\#
+^/README.*
+^/LICENSE.*
+^/COPYING
+
+# Nushell 里这些是本地状态或源码依赖，不应该部署到最终配置目录。
+^/nushell/history\.txt$
+^/nushell/env\.nu\.bak$
+^/nushell/env\.local\.nu$
+^/nushell/env\.local\.nuon$
+^/nushell/plugins($|/)
+^/nushell/vendor($|/)

@@ -1,0 +1,628 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Dotfiles Management Script
+# =============================================================================
+# This script manages the deployment of dotfiles configurations using GNU Stow.
+# It supports platform-specific configurations for macOS and Linux.
+#
+# Usage:
+#   ./dot [OPTIONS]
+#
+# Options:
+#   -h, --help     Display this help message
+#   -n, --dry-run  Simulate the deployment without making changes
+#
+# Requirements:
+#   - GNU Stow (must be installed)
+#   - Bash 4.0+
+#
+# Author: Apollo
+# =============================================================================
+
+set -euo pipefail
+
+# 获取脚本所在目录，确保相对路径正确
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+# 颜色定义
+if command -v tput >/dev/null 2>&1; then
+  RED=$(tput setaf 1)
+  GREEN=$(tput setaf 2)
+  YELLOW=$(tput setaf 3)
+  BLUE=$(tput setaf 4)
+  NC=$(tput sgr0)
+else
+  RED=''
+  GREEN=''
+  YELLOW=''
+  BLUE=''
+  NC=''
+fi
+
+# 全局变量
+DRY_RUN=false
+ADOPT=false
+ASSUME_YES=false
+OS_TYPE=$(uname -s)
+
+# ==================== Configuration Definition Section ====================
+# Format: PlatformType|ConfigName|TargetPath (relative to $HOME)
+declare -a CONFIG_ENTRIES=(
+  # Common configurations (apply to all platforms)
+  "common|neovim|.config"
+  "common|doomemacs|.config"
+  "common|kitty|.config"
+  "common|zed|.config"
+  "common|zellij|.config"
+
+  # macOS specific configurations
+  "Darwin|nushell|Library/Application Support"
+
+  # Linux specific configurations
+  "Linux|nushell|.config"
+  "Linux|hyprland|.config"
+  "Linux|wlogout|.config"
+  "Linux|rofi|.config"
+  "Linux|waybar|.config"
+  "Linux|mako|.config"
+)
+# =========================================================================
+
+# 日志辅助函数
+log_info() { printf "%s[INFO]%s %s\n" "$GREEN" "$NC" "$1"; }
+log_warn() { printf "%s[WARN]%s %s\n" "$YELLOW" "$NC" "$1"; }
+log_error() { printf "%s[ERROR]%s %s\n" "$RED" "$NC" "$1" >&2; }
+log_dry() { printf "%s[DRY-RUN]%s %s\n" "$BLUE" "$NC" "$1"; }
+
+is_git_repo() {
+  git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+is_git_tracked() {
+  local repo_path="$1"
+  if ! is_git_repo; then
+    return 1
+  fi
+  git -C "$SCRIPT_DIR" ls-files --error-unmatch -- "$repo_path" >/dev/null 2>&1
+}
+
+describe_emacs_profile() {
+  local profile_name="$1"
+  if is_git_tracked "emacs/$profile_name"; then
+    printf "tracked"
+  else
+    printf "local"
+  fi
+}
+
+confirm_adopt() {
+  local preview="${1:-}"
+  if [[ "$ASSUME_YES" == "true" ]]; then
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    log_error "--adopt requires interactive confirmation or --yes in non-interactive mode."
+    return 1
+  fi
+
+  cat <<EOF
+⚠️ 危险操作检测！
+
+操作类型：[stow --adopt]
+影响范围：[会把目标目录里未托管的现有文件移动回当前 dotfiles 包目录，再创建符号链接]
+风险评估：[如果目标目录里有你不想纳入 dotfiles 的本地文件，继续后它们会被迁入仓库工作区]
+
+请确认是否继续？[需要明确的 "是"、"确认"、"继续"]
+EOF
+
+  if [[ -n "$preview" ]]; then
+    echo ""
+    echo "预检结果："
+    printf "%s\n" "$preview"
+  fi
+
+  local confirm
+  read -r confirm
+  case "$confirm" in
+  是 | 确认 | 继续) return 0 ;;
+  *)
+    log_warn "Cancelled '--adopt' operation."
+    return 1
+    ;;
+  esac
+}
+
+summarize_adopt_moves() {
+  local config_name="$1"
+  local target_path="$2"
+  local stow_output="$3"
+  local imported_count=0
+  local identical_count=0
+  local differing_count=0
+  local rel_path=""
+  local package_file=""
+  local target_file=""
+  local status=""
+  local details=""
+  local line=""
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^MV:\ (.+)\ \-\>\ .+$ ]]; then
+      rel_path="${BASH_REMATCH[1]}"
+      package_file="$SCRIPT_DIR/$config_name/$rel_path"
+      target_file="$target_path/$rel_path"
+      status="different"
+
+      if [[ -e "$package_file" && -e "$target_file" ]] && cmp -s "$package_file" "$target_file"; then
+        status="identical"
+        ((identical_count++))
+      else
+        ((differing_count++))
+      fi
+
+      ((imported_count++))
+      details+=$'\n'"  - $config_name/$rel_path [$status]"
+    fi
+  done <<<"$stow_output"
+
+  if [[ $imported_count -eq 0 ]]; then
+    return 0
+  fi
+
+  printf "%s: %d file(s) would be imported (%d identical, %d differing)%s\n" \
+    "$config_name" "$imported_count" "$identical_count" "$differing_count" "$details"
+}
+
+collect_adopt_preview() {
+  local entry=""
+  local target_os=""
+  local config_name=""
+  local relative_path=""
+  local package_preview=""
+  local preview=""
+
+  for entry in "${CONFIG_ENTRIES[@]}"; do
+    if ! validate_entry "$entry"; then
+      continue
+    fi
+
+    IFS='|' read -r target_os config_name relative_path <<<"$entry"
+
+    if [[ "$target_os" != "common" && "$target_os" != "$OS_TYPE" ]]; then
+      continue
+    fi
+
+    if [[ ! -d "$config_name" ]]; then
+      continue
+    fi
+
+    package_preview=$(preview_adopt_package "$config_name" "$HOME/$relative_path")
+
+    if [[ -n "$package_preview" ]]; then
+      if [[ -n "$preview" ]]; then
+        preview+=$'\n\n'
+      fi
+      preview+="$package_preview"
+    fi
+  done
+
+  printf "%s" "$preview"
+}
+
+preview_adopt_package() {
+  local config_name="$1"
+  local target_path="$2"
+  local stow_cmd=()
+  local stow_output=""
+
+  if [[ ! -d "$target_path" ]]; then
+    return 0
+  fi
+
+  stow_cmd=(stow -v --no-folding -n --adopt -t "$target_path" "$config_name")
+  stow_output=$("${stow_cmd[@]}" 2>&1 || true)
+  summarize_adopt_moves "$config_name" "$target_path" "$stow_output"
+}
+
+check_dependencies() {
+  if ! command -v stow &>/dev/null; then
+    log_error "'stow' not found. Please install GNU Stow first."
+    exit 1
+  fi
+}
+
+# 验证配置条目格式
+validate_entry() {
+  local entry="$1"
+  local pipe_count
+  pipe_count=$(echo "$entry" | tr -cd '|' | wc -c)
+
+  if [[ $pipe_count -ne 2 ]]; then
+    log_error "Invalid entry format: [$entry]"
+    log_warn "Expected format: PlatformType|ConfigName|RelativeTargetPath"
+    log_warn "Example: common|neovim|.config"
+    return 1
+  fi
+  return 0
+}
+
+# 安装配置文件
+install_configs() {
+  local home_dir="$HOME"
+  local deployed_count=0
+  local skipped_count=0
+  local error_count=0
+
+  log_info "Starting configuration deployment..."
+  log_info "Platform: $OS_TYPE"
+  log_info "Home directory: $home_dir"
+  log_info "Source directory: $SCRIPT_DIR"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_warn "Running in DRY-RUN mode. No changes will be made."
+  fi
+  if [[ "$ADOPT" == "true" ]]; then
+    log_warn "Running with --adopt. Unmanaged target files may be moved into this repository."
+    if [[ "$DRY_RUN" != "true" ]]; then
+      local adopt_preview=""
+      adopt_preview=$(collect_adopt_preview)
+      if [[ -n "$adopt_preview" ]]; then
+        log_warn "Adopt preflight detected existing unmanaged files:"
+        printf "%s\n\n" "$adopt_preview"
+      fi
+      if ! confirm_adopt "$adopt_preview"; then
+        return 1
+      fi
+    fi
+  fi
+  echo ""
+
+  # 切换到脚本所在目录，以便 stow 正常工作
+  cd "$SCRIPT_DIR"
+
+  # 处理所有配置条目
+  for entry in "${CONFIG_ENTRIES[@]}"; do
+    # 验证配置条目格式
+    if ! validate_entry "$entry"; then
+      ((error_count++))
+      continue
+    fi
+
+    # 解析配置条目
+    IFS='|' read -r target_os config_name relative_path <<<"$entry"
+
+    # 跳过不适配当前平台的条目
+    if [[ "$target_os" != "common" && "$target_os" != "$OS_TYPE" ]]; then
+      # 在 verbose 模式下可以显示，这里简化输出只显示跳过
+      # log_warn "Skipping $config_name (not for $OS_TYPE)"
+      ((skipped_count++))
+      continue
+    fi
+
+    # 构建完整目标路径
+    local target_path="${home_dir}/${relative_path}"
+
+    # 验证配置目录是否存在
+    if [[ ! -d "$config_name" ]]; then
+      log_warn "Config directory [$config_name] does not exist in $SCRIPT_DIR. Skipping."
+      ((skipped_count++))
+      continue
+    fi
+
+    # 准备 stow 命令
+    # 关闭 tree folding，确保 .stow-local-ignore 能逐文件生效。
+    local stow_cmd=(stow -v --no-folding)
+    if [[ "$DRY_RUN" == "true" ]]; then
+      stow_cmd+=(-n)
+    fi
+    if [[ "$ADOPT" == "true" ]]; then
+      stow_cmd+=(--adopt)
+    fi
+    stow_cmd+=(-t "$target_path" "$config_name")
+
+    # 执行操作
+    if [[ "$DRY_RUN" == "true" ]]; then
+      log_dry "Would deploy: $config_name -> $target_path"
+      # 即使是 dry-run，stow -n 也会检查冲突，所以我们也执行它
+    else
+      log_info "Deploying: $config_name -> $target_path"
+      # 确保目标目录存在 (Stow 需要父目录存在)
+      if [[ ! -d "$target_path" ]]; then
+        if ! mkdir -p "$target_path"; then
+          log_error "Failed to create directory [$target_path]"
+          ((error_count++))
+          continue
+        fi
+      fi
+    fi
+
+    # 捕获 stow 的输出
+    local stow_output
+    if stow_output=$("${stow_cmd[@]}" 2>&1); then
+      if [[ -n "$stow_output" ]]; then
+        printf "%s\n" "$stow_output"
+      fi
+      if [[ "$DRY_RUN" != "true" ]]; then
+        echo "   ${GREEN}✓ Success${NC}"
+      fi
+      ((deployed_count++))
+    else
+      if [[ -n "$stow_output" ]]; then
+        printf "%s\n" "$stow_output"
+      fi
+      log_error "Failed to deploy $config_name"
+      if [[ "$ADOPT" != "true" && "$stow_output" == *"would cause conflicts"* ]]; then
+        log_warn "Target contains unmanaged files. Review with './dot install -n' or import them with './dot install --adopt'."
+        local conflict_preview=""
+        conflict_preview=$(preview_adopt_package "$config_name" "$target_path")
+        if [[ -n "$conflict_preview" ]]; then
+          log_warn "Conflict preview for $config_name:"
+          printf "%s\n" "$conflict_preview"
+        fi
+      fi
+      ((error_count++))
+    fi
+
+    if [[ "$ADOPT" == "true" && "$DRY_RUN" == "true" ]]; then
+      local adopt_summary=""
+      adopt_summary=$(summarize_adopt_moves "$config_name" "$target_path" "$stow_output")
+      if [[ -n "$adopt_summary" ]]; then
+        log_warn "Adopt preview for $config_name:"
+        printf "%s\n" "$adopt_summary"
+      fi
+    fi
+    echo ""
+  done
+
+  # 显示部署统计
+  echo "${GREEN}=== Deployment Summary ===${NC}"
+  echo "   Platform: $OS_TYPE"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo "   Status: ${BLUE}DRY-RUN${NC}"
+  fi
+  echo "   Processed: $((deployed_count + skipped_count + error_count))"
+  echo "   ${GREEN}✓ Success:  $deployed_count${NC}"
+  echo "   ${YELLOW}⏭ Skipped:  $skipped_count${NC}"
+  if [[ $error_count -gt 0 ]]; then
+    echo "   ${RED}✗ Errors:   $error_count${NC}"
+    return 1
+  else
+    echo "   ${GREEN}✗ Errors:   0${NC}"
+    return 0
+  fi
+}
+
+# 管理 Emacs 配置
+manage_emacs() {
+  local target_config="${1:-}"
+  local emacs_link="$HOME/.config/emacs"
+  local emacs_repo="$SCRIPT_DIR/emacs"
+
+  # 检查 .emacs.d 是否存在且为空，如果是则删除以避免冲突
+  if [[ -d "$HOME/.emacs.d" && -z "$(ls -A "$HOME/.emacs.d")" ]]; then
+    rmdir "$HOME/.emacs.d"
+  fi
+
+  # 如果没有指定配置，显示当前状态
+  if [[ -z "$target_config" ]]; then
+    echo "${GREEN}=== Emacs Configuration Status ===${NC}"
+    if [[ -L "$emacs_link" ]]; then
+      local current
+      current=$(readlink "$emacs_link")
+      echo "Current: ${GREEN}$(basename "$current")${NC} (-> $current)"
+    elif [[ -e "$emacs_link" ]]; then
+      echo "Current: ${YELLOW}Custom/Unknown${NC} (Not a symlink managed by this script)"
+    else
+      echo "Current: ${RED}None${NC}"
+    fi
+
+    echo ""
+    echo "Available configurations:"
+    for d in "$emacs_repo"/*; do
+      if [[ -d "$d" ]]; then
+        local profile_name
+        profile_name=$(basename "$d")
+        printf "  - %s [%s]\n" "$profile_name" "$(describe_emacs_profile "$profile_name")"
+      fi
+    done
+    return 0
+  fi
+
+  # 切换配置
+  if [[ ! -d "$emacs_repo/$target_config" ]]; then
+    log_error "Emacs configuration '$target_config' not found."
+    return 1
+  fi
+  if ! is_git_tracked "emacs/$target_config"; then
+    log_warn "Emacs configuration '$target_config' is local-only and not tracked by git."
+  fi
+
+  log_info "Switching Emacs to '$target_config'..."
+
+  # 移除旧的链接或目录
+  if [[ -L "$emacs_link" ]]; then
+    rm "$emacs_link"
+  elif [[ -e "$emacs_link" ]]; then
+    log_warn "Existing Emacs config is not a symlink. Backing up to ${emacs_link}.bak"
+    mv "$emacs_link" "${emacs_link}.bak"
+  fi
+
+  # 创建父目录
+  mkdir -p "$(dirname "$emacs_link")"
+
+  # 创建链接
+  ln -s "$emacs_repo/$target_config" "$emacs_link"
+
+  if [[ -L "$emacs_link" ]]; then
+    log_info "Successfully switched to '$target_config'."
+  else
+    log_error "Failed to create symlink."
+    return 1
+  fi
+}
+
+# 显示帮助信息
+show_help() {
+  local common_configs=()
+  local macos_configs=()
+  local linux_configs=()
+
+  for entry in "${CONFIG_ENTRIES[@]}"; do
+    IFS='|' read -r platform config _ <<<"$entry"
+    case "$platform" in
+    common) common_configs+=("$config") ;;
+    Darwin) macos_configs+=("$config") ;;
+    Linux) linux_configs+=("$config") ;;
+    esac
+  done
+
+  local common_str=$(printf ", %s" "${common_configs[@]}")
+  common_str="${common_str:2}"
+
+  local macos_str=$(printf ", %s" "${macos_configs[@]}")
+  macos_str="${macos_str:2}"
+
+  local linux_str=$(printf ", %s" "${linux_configs[@]}")
+  linux_str="${linux_str:2}"
+
+  cat <<EOF
+${GREEN}Dotfiles Management Script${NC}
+
+${YELLOW}USAGE:${NC}
+    ./dot [COMMAND] [OPTIONS]
+
+${YELLOW}COMMANDS:${NC}
+    install        Deploy configurations
+    emacs [name]   Switch Emacs configuration (e.g., centaur, doom) or show status
+
+${YELLOW}DESCRIPTION:${NC}
+    This script manages the deployment of dotfiles configurations using GNU Stow.
+    It automatically detects the current platform (macOS/Linux) and deploys
+    only the relevant configurations.
+
+${YELLOW}OPTIONS:${NC}
+    -h, --help     Show this help message
+    -n, --dry-run  Simulate deployment without making changes
+    --adopt        Import existing unmanaged target files into the package tree
+    -y, --yes      Skip confirmation for high-risk actions such as --adopt
+
+${YELLOW}SUPPORTED CONFIGURATIONS:${NC}
+    Common (all platforms):
+        - ${common_str:-None}
+
+    macOS specific:
+        - ${macos_str:-None}
+
+    Linux specific:
+        - ${linux_str:-None}
+
+${YELLOW}EXAMPLES:${NC}
+    ./dot install          # Deploy configurations
+    ./dot install -n       # Check what would happen
+    ./dot --dry-run        # Same as './dot install --dry-run'
+    ./dot install --adopt  # Import existing files before linking
+    ./dot --help           # Show help
+
+EOF
+}
+
+# 显示参数错误信息
+show_args_error() {
+  log_error "Invalid arguments."
+  echo "${YELLOW}Usage: ./dot [command] [options]${NC}"
+  echo "${YELLOW}Try './dot --help' for more information${NC}"
+}
+
+# 解析命令行参数
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    install)
+      COMMAND="install"
+      shift
+      ;;
+    emacs)
+      COMMAND="emacs"
+      shift
+      if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+        COMMAND_ARGS="$1"
+        shift
+      fi
+      ;;
+    --help | -h)
+      COMMAND="help"
+      shift
+      ;;
+    --dry-run | -n)
+      DRY_RUN=true
+      shift
+      ;;
+    --adopt)
+      ADOPT=true
+      shift
+      ;;
+    --yes | -y)
+      ASSUME_YES=true
+      shift
+      ;;
+    *)
+      show_args_error
+      exit 1
+      ;;
+    esac
+  done
+}
+
+# 主函数
+main() {
+  COMMAND=""
+  COMMAND_ARGS=""
+
+  if [[ $# -eq 0 ]]; then
+    show_help
+    exit 0
+  fi
+
+  parse_args "$@"
+
+  if [[ -z "$COMMAND" ]]; then
+    if [[ "$DRY_RUN" == "true" || "$ADOPT" == "true" ]]; then
+      COMMAND="install"
+    else
+      show_help
+      exit 1
+    fi
+  fi
+
+  case "$COMMAND" in
+  install)
+    check_dependencies
+    if install_configs; then
+      log_info "Operation completed."
+      exit 0
+    else
+      log_error "Operation completed with errors."
+      exit 1
+    fi
+    ;;
+  emacs)
+    manage_emacs "$COMMAND_ARGS"
+    ;;
+  help)
+    show_help
+    exit 0
+    ;;
+  *)
+    # If no command set but args were passed (e.g. just flags, or invalid), parse_args might have exited or we fall through
+    if [[ -z "$COMMAND" ]]; then
+      show_help
+      exit 1
+    fi
+    ;;
+  esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

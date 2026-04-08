@@ -1,0 +1,32 @@
+# 本地备份与编辑器临时文件
+*.bak
+*.swp
+*~
+.DS_Store
+
+# Zed 本地状态
+zed/zed/conversations/
+zed/zed/prompts/
+zed/zed/settings_backup.json
+zed/zed/settings.local.json
+
+# Nushell 本地状态
+nushell/nushell/history.txt
+nushell/nushell/env.local.nu
+nushell/nushell/env.local.nuon
+nushell/nushell/vendor/
+
+# Emacs / Doom 运行时状态
+doomemacs/doom/custom.el
+emacs/crafted/
+emacs/doom/
+emacs/lazycat/
+emacs/vanilla/
+emacs/**/.local/
+emacs/**/eln-cache/
+emacs/**/elpa/
+emacs/**/auto-save-list/
+emacs/**/eshell/
+emacs/**/history
+emacs/**/recentf
+emacs/**/recentf.eld

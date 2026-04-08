@@ -2,12 +2,15 @@
 
 (map!
  (:leader
-  :desc "Explorer" "e" #'+treemacs/toggle))
+  :desc "Explorer" :g "e" #'+treemacs/toggle
+  :prefix ("t" . "toggle/tabs")
+  :desc "ace-jump-tabs" :g "a" #'centaur-tabs-ace-jump
+  :prefix ("c")
+  :desc "outline" :g "j" #'consult-outline))
 
-;; use 'C-,' to open/close vterm
-(global-set-key (kbd "C-,") '+vterm/toggle)
+;; unbind 'evil-record-macro', I don't use that
+(map!
+ :map evil-normal-state-map "q" nil)
 
-;; (global-unset-key (kbd "C-h"))
-;; (global-unset-key (kbd "C-k"))
-;; (global-unset-key (kbd "C-j"))
-;; (global-unset-key (kbd "C-l"))
+;; use 'C-,' to open/close eshell
+(global-set-key (kbd "C-,") 'aweshell-dedicated-toggle)

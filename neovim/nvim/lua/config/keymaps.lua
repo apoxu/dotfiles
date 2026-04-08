@@ -8,6 +8,8 @@ map.del({ "x", "n" }, ",")
 -- disable macro recording of neovim
 map.set("n", "q", "<Nop>", { noremap = true })
 
+-- map.set("n", "C-,", "FloatermToggle")
+
 local wk = require("which-key")
 map.set("n", ",", '<cmd>lua require("which-key").show(",", {mode = "n", auto = true})<cr>')
 wk.add({

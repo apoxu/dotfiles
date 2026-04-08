@@ -1,6 +1,11 @@
-[submodule "emacs/emacs"]
-	path = emacs/emacs
-	url = https://github.com/doomemacs/doomemacs.git
 [submodule "emacs/centaur"]
 	path = emacs/centaur
 	url = https://github.com/seagle0128/.emacs.d
+	ignore = untracked
+
+[submodule "nushell/nushell/plugins/bash-env-json"]
+	path = nushell/nushell/plugins/bash-env-json
+	url = https://github.com/tesujimath/bash-env-json
+[submodule "nushell/nushell/plugins/bash-env-nushell"]
+	path = nushell/nushell/plugins/bash-env-nushell
+	url = https://github.com/tesujimath/bash-env-nushell

@@ -1,16 +1,13 @@
 ;; -*- no-byte-compile: t; -*-
 ;;; $DOOMDIR/packages.el
 ;;;
-;;(unpin! t)
+
+;; rolling update all pkgs
+;; (unpin! t)
 
 (package! eglot-x
   :recipe (:host github
            :repo "nemethf/eglot-x"
-           :files ("*.el")))
-
-(package! eldoc-box
-  :recipe (:host github
-           :repo "casouri/eldoc-box"
            :files ("*.el")))
 
 (package! mode-minder
@@ -25,11 +22,38 @@
 ;;   :recipe (:host github
 ;;            :repo "renzmann/treesit-auto"))
 
+(package! just-mode
+  :recipe (:host github
+           :repo "leon-barrett/just-mode.el"
+           :files ("*.el")))
+
 (package! dape
   :recipe (:host github
            :repo "svaante/dape"))
 
-(package! aidermacs
+(package! nushell-mode
   :recipe (:host github
-           :repo "MatthewZMD/aidermacs"
+           :repo "mrkkrp/nushell-mode"))
+
+(package! eldoc-mouse
+  :recipe (:host github
+           :repo "huangfeiyu/eldoc-mouse"))
+
+(package! aweshell
+  :recipe (:host github
+           :repo "manateelazycat/aweshell"))
+
+(package! rainbow-delimiters)
+
+(package! xwwp
+  :recipe (:host github
+           :repo "canatella/xwwp"))
+
+;; agent-shell
+(package! hell-maker)
+(package! acp)
+(package! agent-shell)
+(package! agent-review
+  :recipe (:host github
+           :repo "nineluj/agent-review"
            :files ("*.el")))

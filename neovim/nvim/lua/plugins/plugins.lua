@@ -30,8 +30,7 @@ return {
   },
 
   -- jk, jj as Esc in NORMAL mode
-  {
-    "max397574/better-escape.nvim",
+  { "max397574/better-escape.nvim",
     event = "InsertEnter",
     config = function()
       require("better_escape").setup()
@@ -73,7 +72,7 @@ return {
 
   -- for rust
   {
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
     opts = function(_, opts)
       vim.list_extend(opts.ensure_installed, {
         "rust-analyzer",
@@ -90,16 +89,16 @@ return {
       },
     },
   },
-  {
-    "hedyhli/outline.nvim",
-    opts = {
-      symbols = {
-        filter = {
-          rust = vim.list_extend(vim.deepcopy(LazyVim.config.kind_filter["default"]), { "Object" }),
-        },
-      },
-    },
-  },
+  -- {
+  --   "hedyhli/outline.nvim",
+  --   opts = {
+  --     symbols = {
+  --       filter = {
+  --         rust = vim.list_extend(vim.deepcopy(LazyVim.config.kind_filter["default"]), { "Object" }),
+  --       },
+  --     },
+  --   },
+  -- },
   {
     "mrcjkb/rustaceanvim",
     opts = function(_, opts)
@@ -118,5 +117,14 @@ return {
         end, { desc = "Expand Macro", buffer = bufnr })
       end
     end,
+  },
+  {
+    "nvzone/floaterm",
+    dependencies = "nvzone/volt",
+    opts = {},
+    keys = {
+      {"<C-,>", "<cmd>FloatermToggle<cr>", mode = {"n", "t"}, desc = "Toggle FloatTerm"},
+    },
+    cmd = "FloatermToggle",
   },
 }

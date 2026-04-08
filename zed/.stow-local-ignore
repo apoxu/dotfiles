@@ -1,0 +1,24 @@
+# 注意：包级 .stow-local-ignore 会替换 Stow 默认忽略规则，
+# 所以这里先补回常见的 VCS / 备份文件模式，再追加本地状态规则。
+RCS
+.+,v
+CVS
+\.\#.+
+\.cvsignore
+\.svn
+_darcs
+\.hg
+\.git
+\.gitignore
+\.gitmodules
+.+~
+\#.*\#
+^/README.*
+^/LICENSE.*
+^/COPYING
+
+# Zed 本地状态文件不应该被 stow 到目标目录。
+^/zed/conversations($|/)
+^/zed/prompts($|/)
+^/zed/settings_backup\.json$
+^/zed/settings\.local\.json$

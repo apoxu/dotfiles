@@ -5,27 +5,155 @@
   // - "system": Use the theme that corresponds to the system's appearance
   // - "light": Use the theme indicated by the "light" field
   // - "dark": Use the theme indicated by the "dark" field
-  "assistant": {
-    "default_model": {
-      "provider": "deepseek",
-      "model": "deepseek-reasoner"
+  "git_panel": {
+    "tree_view": true
+  },
+  "context_servers": {
+    "mcp-server-threadbridge": {
+      "enabled": true,
+      "remote": false,
+      "settings": {},
     },
-    "version": "2"
+    "mcp-server-context7": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        // 私有凭据不要写进 dotfiles 仓库。
+        "context7_api_key": null,
+      },
+    },
+    "mcp-server-exa-search": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "exa_api_key": null,
+      },
+    },
+    "mcp-server-mui": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        "preferred_theme": "",
+        "component_filter": [""],
+      },
+    },
+    "mcp-server-github": {
+      "enabled": true,
+      "remote": false,
+      "settings": {
+        // 私有令牌请只保留在本机副本里。
+        "github_personal_access_token": null,
+      },
+    },
+  },
+  "language_models": {
+    "openai_compatible": {
+      "MiniMax": {
+        "api_url": "https://api.minimaxi.com/v1",
+        "available_models": [
+          {
+            "name": "MiniMax-M2.7",
+            "max_tokens": 200000,
+            "max_output_tokens": 32000,
+            "max_completion_tokens": 200000,
+            "capabilities": {
+              "tools": true,
+              "images": false,
+              "parallel_tool_calls": false,
+              "prompt_cache_key": false,
+              "chat_completions": true,
+            },
+          },
+        ],
+      },
+    },
+  },
+  "edit_predictions": {
+    "provider": "zed",
+  },
+  "agent_servers": {
+    "codex-acp": {
+      "favorite_config_option_values": {
+        "mode": [
+          "auto"
+        ]
+      },
+      "type": "registry"
+    },
+    "mini-agent": {
+      "type": "custom",
+      "command": "/Users/apollo/.local/bin/mini-agent-acp",
+    },
+    "kimi": {
+      "type": "registry",
+    },
+    "gemini": {
+      "type": "registry",
+    },
+    "opencode": {
+      "favorite_models": ["opencode/big-pickle/max"],
+      "type": "registry",
+    },
+  },
+  "show_edit_predictions": true,
+  "agent": {
+    "default_profile": "ask",
+    "profiles": {
+      "ask": {
+        "name": "Ask",
+        "tools": {
+          "diagnostics": true,
+          "fetch": true,
+          "list_directory": true,
+          "project_notifications": false,
+          "now": true,
+          "find_path": true,
+          "read_file": true,
+          "open": true,
+          "grep": true,
+          "subagent": true,
+          "thinking": true,
+          "web_search": true,
+        },
+        "enable_all_context_servers": false,
+        "context_servers": {
+          "mcp-server-sequential-thinking": {
+            "tools": {
+              "sequentialthinking": true,
+            },
+          },
+          "mcp-server-repomix": {
+            "tools": {
+              "attach_packed_output": false,
+            },
+          },
+        },
+      },
+    },
+    "tool_permissions": {
+      "default": "allow",
+    },
+    "use_modifier_to_send": true,
+    "play_sound_when_agent_done": true,
+    "default_model": {
+      "enable_thinking": false,
+      "provider": "MiniMax",
+      "model": "MiniMax-M2.7",
+    },
+  },
+  "terminal": {
+    "font_family": "FiraMono Nerd Font Mono",
   },
   "outline_panel": {
-    "dock": "right"
+    "dock": "right",
   },
   "theme": {
     "mode": "light",
-    "light": "Gruvbox Dark",
-    "dark": "One Dark"
+    "light": "Gruvbox Light",
+    "dark": "One Dark",
   },
   "base_keymap": "Emacs",
   // Features that can be globally enabled or disabled
-  "features": {
-    // Which edit prediction provider to use.
-    "edit_prediction_provider": "zed"
-  },
   // The OpenType features to enable for text in the UI
 
   "ui_font_features": null,
@@ -38,31 +166,31 @@
           "maxLength": null,
           "lifetimeElishionHints": {
             "enable": "skip_trivial",
-            "useParameterNames": true
+            "useParameterNames": true,
           },
           "closureReturnTypeHints": {
-            "enable": "always"
-          }
+            "enable": "always",
+          },
         },
         // get more cargo-less diagnostics from rust-analyzer,
         // which might include false-positives (those can be turned off by their names)
         "diagnostics": {
           "experimental": {
-            "enable": true
-          }
+            "enable": true,
+          },
         },
         // To disable the checking entirely
         // (ignores all cargo and check settings below)
         "checkOnSave": true,
         // To check the `lib` target only.
         "cargo": {
-          "allTargets": true
+          "allTargets": true,
         },
         // Use `-p` instead of `--workspace` for cargo check
         "check": {
-          "workspace": true
-        }
-      }
-    }
-  }
+          "workspace": true,
+        },
+      },
+    },
+  },
 }
