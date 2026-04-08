@@ -43,10 +43,15 @@ let os_specific_paths = match $nu.os-info.name {
   _ => []
 }
 
-# 本机私有变量放在 env.local.nuon，避免把 secret 提交到仓库。
-const local_env_path = ($nu.default-config-dir | path join "env.local.nuon")
-if ($local_env_path | path exists) {
-  open --raw $local_env_path | from nuon | load-env
+# 本机私有变量优先放在 ~/.config/secrets，兼容旧的 env.local.nuon。
+let local_env_candidates = [
+  ($env.HOME | path join ".config" "secrets" "nushell.env.nuon")
+  ($nu.default-config-dir | path join "env.local.nuon")
+]
+for candidate in $local_env_candidates {
+  if ($candidate | path exists) {
+    open --raw $candidate | from nuon | load-env
+  }
 }
 
 let paths = ($os_specific_paths | append $base_paths | where {|p| $p | path exists})

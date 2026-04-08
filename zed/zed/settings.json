@@ -15,12 +15,9 @@
       "settings": {},
     },
     "mcp-server-context7": {
-      "enabled": true,
-      "remote": false,
-      "settings": {
-        // 私有凭据不要写进 dotfiles 仓库。
-        "context7_api_key": null,
-      },
+      // 通过本机 wrapper 从 ~/.config/secrets/context7.env 读取私有 key。
+      "command": "/Users/apollo/.config/secrets/bin/zed-context7-mcp",
+      "args": [],
     },
     "mcp-server-exa-search": {
       "enabled": true,
