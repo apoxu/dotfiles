@@ -49,12 +49,13 @@ ADOPT=false
 ASSUME_YES=false
 OS_TYPE=$(uname -s)
 
-# ==================== Configuration Definition Section ====================
+# ==================== Configuration Definition Section ===================
 # Format: PlatformType|ConfigName|TargetPath (relative to $HOME)
 declare -a CONFIG_ENTRIES=(
   # Common configurations (apply to all platforms)
   "common|neovim|.config"
   "common|doomemacs|.config"
+  "common|emacs-solo|.config"
   "common|kitty|.config"
   "common|zed|.config"
   "common|zellij|.config"

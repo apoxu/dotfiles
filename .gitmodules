@@ -3,6 +3,16 @@
 	url = https://github.com/seagle0128/.emacs.d
 	ignore = untracked
 
+[submodule "emacs/emacs-solo"]
+	path = emacs/emacs-solo
+	url = https://github.com/LionyxML/emacs-solo.git
+	ignore = untracked
+
+[submodule "emacs/minemacs"]
+	path = emacs/minemacs
+	url = https://github.com/abougouffa/minemacs.git
+	ignore = untracked
+
 [submodule "nushell/nushell/plugins/bash-env-json"]
 	path = nushell/nushell/plugins/bash-env-json
 	url = https://github.com/tesujimath/bash-env-json

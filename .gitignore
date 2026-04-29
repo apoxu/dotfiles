@@ -18,6 +18,8 @@ nushell/nushell/vendor/
 
 # Emacs / Doom 运行时状态
 doomemacs/doom/custom.el
+emacs-solo/esolo/*.elc
+emacs-solo/esolo/pure-builtin-treemacs-state.el
 emacs/crafted/
 emacs/doom/
 emacs/lazycat/

@@ -1,0 +1,24 @@
+# 注意：包级 .stow-local-ignore 会替换 Stow 默认忽略规则，
+# 所以这里先补回常见的 VCS / 备份文件模式，再追加本包运行状态规则。
+RCS
+.+,v
+CVS
+\.\#.+
+\.cvsignore
+\.svn
+_darcs
+\.hg
+\.git
+\.gitignore
+\.gitmodules
+.+~
+\#.*\#
+^/README.*
+^/LICENSE.*
+^/COPYING
+
+# emacs-solo 包只部署可加载源码；编译产物和会话状态留在本机。
+^/esolo/.*\.elc$
+^/esolo/pure-builtin-treemacs-state\.el$
+^/esolo/custom-vars\.el$
+^/esolo/custom-vars\.elc$
