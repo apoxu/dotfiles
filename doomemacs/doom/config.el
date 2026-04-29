@@ -17,8 +17,9 @@
 
 (setq org-directory "~/org/")
 
-;; Enable pixel scroll by default. (when (and (>= emacs-major-version 28) (display-graphic-p))
-(pixel-scroll-precision-mode 1)
+;; Enable pixel scroll by default.
+(when (and (>= emacs-major-version 28) (display-graphic-p))
+  (pixel-scroll-precision-mode 1))
 
 ;; Don't disturb me when quitting emacs.
 (setq confirm-kill-emacs nil)
@@ -64,7 +65,6 @@
                          makefile-bsdmake-mode
                          c-mode
                          c-ts-mode
-                         ;;vterm-mode
                          fundamental-mode
                          nushell-mode
                          nxml-mode

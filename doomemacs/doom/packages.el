@@ -50,7 +50,7 @@
            :repo "canatella/xwwp"))
 
 ;; agent-shell
-(package! hell-maker)
+(package! shell-maker)
 (package! acp)
 (package! agent-shell)
 (package! agent-review
