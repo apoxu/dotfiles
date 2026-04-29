@@ -24,13 +24,17 @@ set -euo pipefail
 # 获取脚本所在目录，确保相对路径正确
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-# 颜色定义
-if command -v tput >/dev/null 2>&1; then
-  RED=$(tput setaf 1)
-  GREEN=$(tput setaf 2)
-  YELLOW=$(tput setaf 3)
-  BLUE=$(tput setaf 4)
-  NC=$(tput sgr0)
+# 颜色定义：后台任务可能没有可用 TERM，不能让 tput 失败打断脚本。
+COLOR_COUNT=0
+if [[ -n "${TERM:-}" ]] && command -v tput >/dev/null 2>&1; then
+  COLOR_COUNT=$(tput colors 2>/dev/null || printf "0")
+fi
+if [[ "$COLOR_COUNT" =~ ^[0-9]+$ && "$COLOR_COUNT" -ge 8 ]]; then
+  RED=$(tput setaf 1 || printf "")
+  GREEN=$(tput setaf 2 || printf "")
+  YELLOW=$(tput setaf 3 || printf "")
+  BLUE=$(tput setaf 4 || printf "")
+  NC=$(tput sgr0 || printf "")
 else
   RED=''
   GREEN=''
@@ -225,6 +229,127 @@ preview_adopt_package() {
   summarize_adopt_moves "$config_name" "$target_path" "$stow_output"
 }
 
+normalize_path_lexically() {
+  local path="$1"
+  local part=""
+  local normalized=""
+  local -a input_parts=()
+  local -a output_parts=()
+
+  if [[ "$path" != /* ]]; then
+    path="$PWD/$path"
+  fi
+
+  IFS='/' read -r -a input_parts <<<"$path"
+  for part in "${input_parts[@]}"; do
+    case "$part" in
+    "" | ".")
+      ;;
+    "..")
+      if [[ ${#output_parts[@]} -gt 0 ]]; then
+        output_parts=("${output_parts[@]:0:${#output_parts[@]}-1}")
+      fi
+      ;;
+    *)
+      output_parts+=("$part")
+      ;;
+    esac
+  done
+
+  if [[ ${#output_parts[@]} -eq 0 ]]; then
+    printf "/"
+    return 0
+  fi
+
+  normalized=$(IFS=/; printf "%s" "${output_parts[*]}")
+  printf "/%s" "$normalized"
+}
+
+link_target_path() {
+  local link_path="$1"
+  local raw_target=""
+
+  raw_target=$(readlink "$link_path") || return 1
+  if [[ "$raw_target" == /* ]]; then
+    normalize_path_lexically "$raw_target"
+  else
+    normalize_path_lexically "$(dirname "$link_path")/$raw_target"
+  fi
+}
+
+is_path_within() {
+  local path="$1"
+  local parent="$2"
+
+  [[ "$path" == "$parent" || "$path" == "$parent/"* ]]
+}
+
+prune_empty_parent_dirs() {
+  local start_dir="$1"
+  local stop_dir="$2"
+  local current_dir=""
+
+  current_dir=$(normalize_path_lexically "$start_dir")
+  stop_dir=$(normalize_path_lexically "$stop_dir")
+
+  while [[ "$current_dir" != "$stop_dir" && "$current_dir" == "$stop_dir/"* ]]; do
+    if rmdir "$current_dir" 2>/dev/null; then
+      log_info "Removed empty directory: $current_dir"
+      current_dir=$(dirname "$current_dir")
+    else
+      break
+    fi
+  done
+}
+
+prune_stale_stow_links() {
+  local config_name="$1"
+  local target_path="$2"
+  local package_root=""
+  local target_root=""
+  local link_path=""
+  local resolved_target=""
+  local raw_target=""
+  local stale_count=0
+
+  if [[ ! -d "$target_path" ]]; then
+    return 0
+  fi
+
+  package_root=$(normalize_path_lexically "$SCRIPT_DIR/$config_name")
+  target_root=$(normalize_path_lexically "$target_path")
+
+  # Stow 不会自动记住已从仓库删除的历史文件；这里仅清理仍指向当前包、
+  # 但源路径已经不存在的符号链接，避免误删用户自己的普通配置文件。
+  while IFS= read -r -d '' link_path; do
+    resolved_target=$(link_target_path "$link_path") || continue
+    if ! is_path_within "$resolved_target" "$package_root"; then
+      continue
+    fi
+    if [[ -e "$resolved_target" || -L "$resolved_target" ]]; then
+      continue
+    fi
+
+    raw_target=$(readlink "$link_path")
+    if [[ "$DRY_RUN" == "true" ]]; then
+      log_dry "Would remove stale symlink: $link_path -> $raw_target"
+    else
+      if rm "$link_path"; then
+        log_warn "Removed stale symlink: $link_path -> $raw_target"
+        prune_empty_parent_dirs "$(dirname "$link_path")" "$target_root"
+      else
+        log_error "Failed to remove stale symlink: $link_path"
+        return 1
+      fi
+    fi
+    ((stale_count += 1))
+  done < <(find "$target_path" -type l -print0)
+
+  if [[ $stale_count -gt 0 && "$DRY_RUN" != "true" ]]; then
+    log_info "Pruned $stale_count stale link(s) for $config_name."
+  fi
+}
+
 check_dependencies() {
   if ! command -v stow &>/dev/null; then
     log_error "'stow' not found. Please install GNU Stow first."
@@ -335,6 +460,11 @@ install_configs() {
           continue
         fi
       fi
+    fi
+
+    if ! prune_stale_stow_links "$config_name" "$target_path"; then
+      ((error_count++))
+      continue
     fi
 
     # 捕获 stow 的输出
